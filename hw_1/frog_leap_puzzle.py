@@ -12,19 +12,29 @@ def moves(board, zero_state):
     def swap(new_pos):
         temp = list(board)
         temp[zero_state], temp[new_pos] = temp[new_pos], temp[zero_state]
-        return tuple(temp)
+        return ''.join(temp)
 
     # think of better var names
     for step in (1, 2):
-        jump = zero_state - step
-        if jump >= 0 and board[jump] == '>':
-            res.append((swap(jump), jump))
+        left = zero_state - step
+        if left >= 0 and board[left] == '>':
+            res.append((swap(left), left))
 
-        jump = zero_state + step
-        if jump < n and board[jump] == '<':
-            res.append((swap(jump), jump))
+        right = zero_state + step
+        if right < n and board[right] == '<':
+            res.append((swap(right), right))
 
     return res
+
+def is_dead_state(board, zero_state):
+    mid = len(board) // 2
+    if zero_state < mid and '<' not in board[zero_state+1:]:
+        return True
+    
+    if zero_state > mid and '>' not in board[:zero_state]:
+        return True
+    
+    return False
     
 
 def dfs(board, zero_state, visited=None, path=None):
@@ -33,13 +43,14 @@ def dfs(board, zero_state, visited=None, path=None):
     if path is None:
         path = []
 
-    if board in visited:
+    if board in visited or is_dead_state(board, zero_state):
         return None
+    
     visited.add(board)
-    path.append(''.join(board))
+    path.append(board)
 
     if is_goal_state(board, zero_state):
-        return path.copy() #why a copy
+        return path.copy() 
     
     for move, new_state in moves(board, zero_state):
         result = dfs(move, new_state, visited, path)
@@ -50,16 +61,10 @@ def dfs(board, zero_state, visited=None, path=None):
     return None
 
 def get_board(n):
-    return tuple(['>']*n + ['_'] + ['<']*n)
+    return '>'*n + '_' + '<'*n
 
 n = int(input())
-# zero_state = n
 board = get_board(n)
-# board_tuple = tuple(board)
-# print(board_tuple)
-# print(len(board_tuple))
-# print(moves(board, zero_state))
-# print(is_goal_state(('<', '<', '_', '>', '>'), 2))
 
 sol = dfs(board, n)
 if sol:
