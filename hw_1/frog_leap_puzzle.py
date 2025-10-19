@@ -26,34 +26,34 @@ def moves(board, zero_state):
 
     return res
 
-def is_dead_state(board, zero_state):
-    mid = len(board) // 2
-    if zero_state < mid and '<' not in board[zero_state+1:]:
-        return True
+# def is_dead_state(board, zero_state):
+#     mid = len(board) // 2
+#     if zero_state < mid and '<' not in board[zero_state+1:]:
+#         return True
     
-    if zero_state > mid and '>' not in board[:zero_state]:
-        return True
+#     if zero_state > mid and '>' not in board[:zero_state]:
+#         return True
     
-    return False
+#     return False
     
 
-def dfs(board, zero_state, visited=None, path=None):
+def dfs(board, zero_state, goal, visited=None, path=None):
     if visited is None:
         visited = set()
     if path is None:
         path = []
 
-    if board in visited or is_dead_state(board, zero_state):
-        return None
+    # if board in visited or is_dead_state(board, zero_state):
+    #     return None
     
     visited.add(board)
     path.append(board)
 
-    if is_goal_state(board, zero_state):
+    if board == goal:
         return path.copy() 
     
     for move, new_state in moves(board, zero_state):
-        result = dfs(move, new_state, visited, path)
+        result = dfs(move, new_state, goal, visited, path)
         if result:
             return result
         
@@ -63,10 +63,14 @@ def dfs(board, zero_state, visited=None, path=None):
 def get_board(n):
     return '>'*n + '_' + '<'*n
 
+def get_goal(n):
+    return '<'*n + '_' + '>'*n
+
 n = int(input())
 board = get_board(n)
+goal = get_goal(n)
 
-sol = dfs(board, n)
+sol = dfs(board, n, goal)
 if sol:
     for step in sol:
         print(step)
