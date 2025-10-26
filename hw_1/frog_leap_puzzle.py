@@ -40,7 +40,7 @@ def get_board(n):
 def get_goal(n):
     return '<'*n + '_' + '>'*n
 
-n = int(input())
+n = int(input('Enter n:'))
 board = '>'*n + '_' + '<'*n
 goal = '<'*n + '_' + '>'*n
 sol = dfs_it(board, n, goal)
