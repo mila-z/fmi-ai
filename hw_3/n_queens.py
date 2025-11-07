@@ -47,5 +47,16 @@ def min_conflicts(n, max_steps=100000):
 
     return None
 
+def print_board(board):
+    if board == -1:
+        print(-1)
+        return 
+
+    for row in range(len(board)):
+        line = ""
+        for col in range(n):
+            line += "*" if board[row] == col else "_"
+        print(line)
+
 n = int(input("Enter n:"))
-print(min_conflicts(n))
+print_board(min_conflicts(n))
