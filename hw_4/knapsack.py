@@ -4,55 +4,57 @@ import math
 
 POPULATION_SIZE = 200
 GENERATIONS = 100
-# TOURNAMENT_SIZE = 5
-MUTATION_RATE = 0.015
+TOURNAMENT_SIZE = 5
+MUTATION_RATE = 0.02
 ELITE_COUNT = 5
 
 # define fitness function
-def fitness(chrom, items, max_weight):
+def fitness(chrom, items, limit):
     weight = value = 0
-    for bit, (w, v) in zip(chrom, items):
-        if bit:
-            weight += w
-            value += v
-    if weight > max_weight:
-        return 0
+    for i, gene in enumerate(chrom):
+        if gene:
+            weight += items[i][0]
+            value += items[i][1]
+            if weight > limit:
+                return 0
     return value
 
 # generate initial population
-def random_chromosome(n):
-    return [random.randint(0, 1) for _ in range(n)]
+def gen_chromosome(length, items, limit):
+    chrom = [random.randint(0, 1) for _ in range(length)]
+    repair(chrom, items, limit)
+    return chrom
 
-def generate_population(size, n):
-    return [random_chromosome(n) for _ in range(size)]
+def gen_population(size, length, items, limit):
+    return [gen_chromosome(length, items, limit) for _ in range(size)]
 
 # repair -> remove random
-def repair(chrom, items, max_weight):
-    while True:
-        total_w = sum(items[i][0] for i in range(len(chrom)) if chrom[i])
-        if total_w <= max_weight:
-            return
-        idxs = [i for i in range(len(chrom)) if chrom[i]]
-        chrom[random.choice(idxs)] = 0
+def repair(chrom, items, limit):
+    curr = sum(items[i][0] for i, bit in enumerate(chrom) if bit)
+
+    if curr <= limit:
+        return
+    
+    efficiency = [(i, items[i][1]/items[i][0]) for i, bit in enumerate(chrom) if bit]
+    efficiency.sort(key=lambda p: p[1])
+
+    for i, _ in efficiency:
+        chrom[i] = 0
+        curr -= items[i][0]
+        if curr <= limit:
+            break
+
+
 
 # roulette selection
-def roulette_selection(population, fitnesses):
-    total_f = sum(fitnesses)
-    if total_f == 0:
-        return random.choice(population)
-    
-    pick = random.uniform(0, total_f)
-    current = 0
-    for chrom, f in zip(population, fitnesses):
-        current += f
-        if current >= pick:
-            return chrom
-    return population[-1]
+def select_parent(pop, scores):
+    contenders = random.sample(list(zip(pop, scores)), TOURNAMENT_SIZE)
+    contenders.sort(key=lambda pair: pair[1], reverse=True)
+    return contenders[0][0]
 
-# one point crossover
-def one_point_crossover(p1, p2):
-    n = len(p1)
-    point = random.randint(1, n-1)
+# crossover
+def crossover(p1, p2):
+    point = random.randint(1, len(p1)-1)
     c1 = p1[:point] + p2[point:]
     c2 = p2[:point] + p1[point:]
     return c1, c2
@@ -64,24 +66,24 @@ def mutate(chrom):
             chrom[i] ^= 1
 
 # genetic alg
-def genetic_algorithm(M, N, items):
+def genetic_alg(M, N, items):
     # start_time = time.time()
 
-    population = generate_population(POPULATION_SIZE, N)
+    population = gen_population(POPULATION_SIZE, N, items, M)
 
     best_values = []
 
     for gen in range(GENERATIONS):
-        fitnesses = [fitness(c, items, M) for c in population]
+        scores = [fitness(c, items, M) for c in population]
 
-        elite_indices = sorted(range(len(population)), key=lambda i: fitnesses[i], reverse=True)[:ELITE_COUNT]
-        new_population = [population[i][:] for i in elite_indices]
+        sorted_pop = sorted(zip(population, scores), key=lambda x: x[1], reverse=True)
+        new_pop = [p for p, _ in sorted_pop[:ELITE_COUNT]]
 
-        while len(new_population) < POPULATION_SIZE:
-            p1 = roulette_selection(population, fitnesses)
-            p2 = roulette_selection(population, fitnesses)
+        while len(new_pop) < POPULATION_SIZE:
+            p1 = select_parent(population, scores)
+            p2 = select_parent(population, scores)
 
-            c1, c2 = one_point_crossover(p1, p2)
+            c1, c2 = crossover(p1, p2)
 
             mutate(c1)
             mutate(c2)
@@ -89,13 +91,13 @@ def genetic_algorithm(M, N, items):
             repair(c1, items, M)
             repair(c2, items, M)
 
-            new_population.append(c1)
-            if len(new_population) < POPULATION_SIZE:
-                new_population.append(c2)
+            new_pop.append(c1)
+            if len(new_pop) < POPULATION_SIZE:
+                new_pop.append(c2)
 
-        population = new_population
+        population = new_pop
 
-        best_value = max(fitness(c, items, M) for c in population)
+        best_value = max(scores)
         if gen == 0 or gen == GENERATIONS - 1 or gen % (GENERATIONS // 9) == 0:
             print(best_value)
             best_values.append(best_value)
@@ -107,9 +109,6 @@ def genetic_algorithm(M, N, items):
 if __name__ == "__main__":
     M, N = map(int, input().split())
 
-    items = []
-    for _ in range(N):
-        w, v, = map(int, input().split())
-        items.append((w, v))
+    items =[tuple(map(int, input().split())) for _ in range(N)]
 
-    genetic_algorithm(M, N, items)
+    genetic_alg(M, N, items)
