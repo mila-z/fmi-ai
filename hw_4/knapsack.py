@@ -33,9 +33,7 @@ def repair(chrom, items, max_weight):
         if total_w <= max_weight:
             return
         idxs = [i for i in range(len(chrom)) if chrom[i]]
-        remove_i = random.choice(idxs)
-        chrom[remove_i] = random.choice(idxs)
-        chrom[remove_i] = 0
+        chrom[random.choice(idxs)] = 0
 
 # roulette selection
 def roulette_selection(population, fitnesses):
@@ -51,16 +49,12 @@ def roulette_selection(population, fitnesses):
             return chrom
     return population[-1]
 
-# uniform crossover
-def uniform_crossover(p1, p2):
-    c1, c2 = [], []
-    for a, b in zip(p1, p2):
-        if random.random() < 0.05:
-            c1.append(a)
-            c2.append(b)
-        else:
-            c1.append(b)
-            c2.append(a)
+# one point crossover
+def one_point_crossover(p1, p2):
+    n = len(p1)
+    point = random.randint(1, n-1)
+    c1 = p1[:point] + p2[point:]
+    c2 = p2[:point] + p1[point:]
     return c1, c2
 
 # mutation
@@ -87,7 +81,7 @@ def genetic_algorithm(M, N, items):
             p1 = roulette_selection(population, fitnesses)
             p2 = roulette_selection(population, fitnesses)
 
-            c1, c2 = uniform_crossover(p1, p2)
+            c1, c2 = one_point_crossover(p1, p2)
 
             mutate(c1)
             mutate(c2)
