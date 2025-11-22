@@ -1,21 +1,18 @@
 import sys
 import math
 
-def parse_input_judge():
-    lines = [line.rstrip('\n') for line in sys.stdin]
-    mode = lines[0]
-
-    turn = lines[1].split()[1]
-    if turn == "0":
-        turn = "O"
-
+def parse_board():
     board = []
-    for line in lines[2:]:
+    while len(board) < 3:
+        line = sys.stdin.readline()
+        if not line:
+            break
+        line = line.rstrip('\n')
         if '|' in line:
             cells = [c.strip() for c in line.split('|')[1:4]]
             board.append(cells)
     
-    return mode, turn, board
+    return board
 
 def is_winner(board, player):
     lines = (
@@ -37,7 +34,7 @@ def minimax(board, alpha, beta, is_maximizing, ai, opp, depth):
     if is_winner(board, opp):
         return depth - 10
     if is_terminal(board):
-        return -depth
+        return 0
     
     if is_maximizing:
         best = -math.inf
@@ -47,10 +44,12 @@ def minimax(board, alpha, beta, is_maximizing, ai, opp, depth):
                     board[r][c] = ai
                     score = minimax(board, alpha, beta, False, ai, opp, depth + 1)
                     board[r][c] = '_'
-                    best = max(best, score)
-                    alpha = max(alpha, best)
+                    if score > best:
+                        best = score
+                    if best > alpha:
+                        alpha = best
                     if beta <= alpha:
-                        return best
+                        break
         return best
     else:
         best = math.inf
@@ -60,10 +59,12 @@ def minimax(board, alpha, beta, is_maximizing, ai, opp, depth):
                     board[r][c] = opp
                     score = minimax(board, alpha, beta, True, ai, opp, depth + 1)
                     board[r][c] = '_'
-                    best = min(best, score)
-                    beta = min(beta, best)
+                    if score < best:
+                        best = score
+                    if best < beta:
+                        beta = best
                     if beta <= alpha:
-                        return best
+                        break
         return best
     
 def best_move(board, turn):
@@ -96,8 +97,29 @@ def best_move(board, turn):
     return move
 
 
-def main():
-    mode, turn, board = parse_input_judge()
+def print_board(board):
+    sep = "+---+---+---+"
+    print(sep)
+    for row in board:
+        print("|" + " | ".join(row) + " |")
+        print(sep)
+
+def other(player):
+    return 'O' if player == 'X' else 'X'
+
+def current_player_from_board(first, board):
+    moves = sum(1 for row in board for cell in row if cell != '_')
+    if moves % 2 == 0:
+        return first
+    else:
+        return other(first)
+
+def run_judge():
+    turn_line = sys.stdin.readline().strip()
+    turn_raw = turn_line.split()[1]
+    turn = 'O' if turn_raw == '0' else turn_raw
+
+    board = parse_board()
 
     if is_terminal(board):
         print(-1)
@@ -110,6 +132,60 @@ def main():
     
     r, c = move
     print(r + 1, c + 1)
+
+def run_game():
+    first_line = sys.stdin.readline().strip()
+    human_line = sys.stdin.readline().strip()
+
+    first_raw = first_line.split()[1]
+    human_raw = human_line.split()[1]
+
+    first = 'O' if first_raw == '0' else first_raw
+    human = 'O' if human_raw == '0' else human_raw
+    ai = other(human)
+
+    board = parse_board()
+
+    current = current_player_from_board(first, board)
+
+    while not is_terminal(board):
+        if current == human:
+            line = input()
+            if not line:
+                break
+            parts = line.split()
+            if len(parts) != 2:
+                continue
+            row = int(parts[0]) - 1
+            col = int(parts[1]) - 1
+            if 0 <= row < 3 and 0 <= col < 3 and board[row][col] == '_':
+                board[row][col] = human
+        else:
+            move = best_move(board, current)
+            if move is None:
+                break
+            r, c = move
+            board[r][c] = current
+        
+        print_board(board)
+        current = other(current)
+
+    if is_winner(board, 'X'):
+        print("WINNER: X")
+    elif is_winner(board, 'O'):
+        print("WINNER: O")
+    else:
+        print("DRAW")
+
+def main():
+    mode = sys.stdin.readline().strip()
+
+    if mode == "JUDGE":
+        run_judge()
+    elif mode == "GAME":
+        run_game()
+    else:
+        pass
 
 if __name__ == "__main__":
     main()
