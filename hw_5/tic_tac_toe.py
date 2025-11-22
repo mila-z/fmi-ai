@@ -1,7 +1,7 @@
 import sys
 import math
 
-def parse_input():
+def parse_input_judge():
     lines = [line.rstrip('\n') for line in sys.stdin]
     mode = lines[0]
 
@@ -70,15 +70,16 @@ def best_move(board, turn):
     ai = turn
     opp = 'O' if ai == 'X' else 'X'
 
-    best_score = -math.inf if ai == 'X' else math.inf
+    best_score = -math.inf 
     move = None
 
     for r in range(3):
         for c in range(3):
-            if board[r][c] =='_':
+            if board[r][c] == '_':
                 board[r][c] = ai
+
                 score = minimax(
-                    board, 
+                    board,
                     -math.inf,
                     math.inf,
                     False,
@@ -86,19 +87,17 @@ def best_move(board, turn):
                     opp,
                     1
                 )
+
                 board[r][c] = '_'
 
-                if ai == 'X' and score > best_score:
+                if score > best_score:
                     best_score = score
                     move = (r, c)
-                if ai == 'O' and score < best_score:
-                    best_score = score
-                    move = (r, c)
-
     return move
 
+
 def main():
-    mode, turn, board = parse_input()
+    mode, turn, board = parse_input_judge()
 
     if is_terminal(board):
         print(-1)
