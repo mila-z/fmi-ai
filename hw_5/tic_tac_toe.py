@@ -150,7 +150,7 @@ def run_game():
 
     while not is_terminal(board):
         if current == human:
-            line = input()
+            line = input().strip()
             if not line:
                 break
             parts = line.split()
