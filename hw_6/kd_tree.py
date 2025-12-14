@@ -1,5 +1,25 @@
 import math
 import os
+import random
+
+def column_means(X):
+    return [sum(col)/len(X) for col in zip(*X)]
+
+def column_stds(X, means):
+    return [
+        math.sqrt(sum((x[i] - means[i]) ** 2 for x in X)/len(X))
+        for i in range(len(means))
+    ]
+
+def z_score_norm(X, means, stds):
+    Xn = []
+    for row in X:
+        Xn.append([
+            (row[i] - means[i])/stds[i] if stds[i] != 0 else 0.0
+            for i in range(len(row))
+        ])
+    
+    return Xn
 
 # kd-tree data structure
 class KDNode:
@@ -9,59 +29,6 @@ class KDNode:
         self.axis = axis
         self.left = left
         self.right = right
-
-def column_means(X):
-    """
-    function that gets the means
-    """
-    n_samples = len(X)
-    n_features = len(X[0])
-
-    means = [0.0]*n_features
-
-    for row in X:
-        for j in range(n_features):
-            means[j] += row[j] # get the sum by columns
-
-    for j in range(n_features):
-        means[j] /= n_samples # divide each sum by the count
-
-    return means
-
-def column_stds(X, means):
-    """
-    function that gets the standardization
-    """
-    n_samples = len(X)
-    n_features = len(X[0])
-
-    stds = [0.0]*n_features
-
-    for row in X:
-        for j in range(n_features):
-            stds[j] += (row[j] - means[j]) ** 2 # сумата на отклоненията
-
-    for j in range(n_features):
-        stds[j] = math.sqrt(stds[j] / n_samples)
-
-    return stds
-
-def z_score_norm(X, means, stds):
-    """
-    function that returns the normalized data
-    """
-    X_norm = []
-
-    for row in X:
-        new_row = []
-        for j in range(len(row)):
-            if stds[j] == 0:
-                new_row.append(0.0) # avoid 0 division
-            else:
-                new_row.append((row[j] - means[j]) / stds[j])
-        X_norm.append(new_row) # new_row is the standardization for each column
-
-    return X_norm
 
 # build kd-tree
 # each el in points is ([features], label)
@@ -84,7 +51,7 @@ def build_kdtree(points, depth =0):
     )
 
 def euclidean(a, b):
-    return sum((a[i] - b[i]) ** 2 for i in range(len(a))) ** 0.5
+    return math.sqrt(sum((a[i]-b[i])**2 for i in range(len(a))))
 
 def kd_search(node, target, k, neighbors):
     if node is None:
@@ -131,42 +98,39 @@ def evaluate_accuracy(X, y, k_neighbors):
     return correct / len(y) * 100
 
 def cross_validate_kdtree(X, y, k_neighbors, k_folds=10):
-    folds = [[] for _ in range(k_folds)]
-    for i in range(len(X)):
-        folds[i%k_folds].append((X[i], y[i]))
-
+    data = list(zip(X, y))
+    random.shuffle(data)
+    fold_size = len(data)//k_folds
     fold_accuracies = []
 
     for i in range(k_folds):
-        test_fold = folds[i]
-        train_folds = folds[:i] + folds[i+1:]
-        train_data = [item for fold in train_folds for item in fold]
+        test = data[i*fold_size:(i+1)*fold_size]
+        train = data[:i*fold_size] + data[(i+1)*fold_size:]
 
-        X_train = [x for x, _ in train_data]
-        y_train = [label for _, label in train_data]
+        X_train = [x for x, _ in train]
+        y_train = [label for _, label in train]
 
-        X_test = [x for x, _ in test_fold]
-        y_test = [label for _, label in test_fold]
+        X_test = [x for x, _ in test]
+        y_test = [label for _, label in test]
 
         means = column_means(X_train)
         stds = column_stds(X_train, means)
 
-        X_train_norm = z_score_norm(X_train, means, stds)
-        X_test_norm = z_score_norm(X_test, means, stds)
+        X_train = z_score_norm(X_train, means, stds)
+        X_test = z_score_norm(X_test, means, stds)
 
-        train_points = list(zip(X_train_norm, y_train))
+        train_points = list(zip(X_train, y_train))
         tree = build_kdtree(train_points)
 
-        correct = 0
-        for j in range(len(X_test_norm)):
-            pred = kd_tree_predict(tree, X_test_norm[j], k_neighbors)
-            if pred == y_test[j]:
-                correct += 1
+        correct = sum(
+            1 for i in range(len(X_test))
+            if kd_tree_predict(tree, X_test[i], k_neighbors) == y_test[i] 
+        )
 
-        fold_accuracies.append(correct / len(X_test_norm) * 100)
+        fold_accuracies.append(correct/len(y_test)*100)
 
     avg = sum(fold_accuracies) / k_folds
-    std = (sum((a-avg) ** 2 for a in fold_accuracies) / k_folds) ** 0.5
+    std = math.sqrt(sum((a-avg)**2 for a in fold_accuracies)/k_folds)
 
     return fold_accuracies, avg, std
 
@@ -191,34 +155,49 @@ def load_data(filename="iris.data"):
     
     return X, y
 
+def stratified_split(X, y, test_ratio=0.2):
+    data_by_class = {}
+
+    for xi, yi in zip(X, y):
+        data_by_class.setdefault(yi, []).append(xi)
+
+    X_train, y_train = [], []
+    X_test, y_test = [], []
+
+    for label, samples in data_by_class.items():
+        random.shuffle(samples)
+        split = int(len(samples)*(1 - test_ratio))
+
+        for x in samples[:split]:
+            X_train.append(x)
+            y_train.append(label)
+
+        for x in samples[split:]:
+            X_test.append(x)
+            y_test.append(label)
+
+    return X_train, X_test, y_train, y_test
 
 if __name__ == "__main__":
     # get input
     neighbors = int(input().strip())
     X, y = load_data() # X - data, y - labels
+    X_train, X_test, y_train, y_test = stratified_split(X, y)
 
     # train set accuracy
-    means = column_means(X)
-    stds = column_stds(X, means)
-    X_norm = z_score_norm(X, means, stds)
+    means = column_means(X_train)
+    stds = column_stds(X_train, means)
 
-    train_points = list(zip(X_norm, y))
-    tree = build_kdtree(train_points)
-    
-    correct = 0
-    for i in range(len(X_norm)):
-        pred = kd_tree_predict(tree, X_norm[i], neighbors)
-        if pred == y[i]:
-            correct += 1
-    
-    train_acc = correct / len(y) * 100
+    X_train = z_score_norm(X_train, means, stds)
+    X_test = z_score_norm(X_test, means, stds)
 
+    train_acc = evaluate_accuracy(X_train, y_train, neighbors)
     print("1. Train Set Accuracy:")
     print(f"\tAccuracy: {train_acc:.2f}%")
 
     # cross validation
     print("2. 10-Fold Cross-Validation Results:")
-    fold_accs, avg_acc, std_acc = cross_validate_kdtree(X, y, neighbors)
+    fold_accs, avg_acc, std_acc = cross_validate_kdtree(X_train, y_train, neighbors)
 
     for i, acc in enumerate(fold_accs):
         print(f"\tAccuracy Fold {i+1}: {acc:.2f}%")
@@ -227,5 +206,6 @@ if __name__ == "__main__":
     print(f"\tStandard Deviation: {std_acc:.2f}%")
 
     # test set accuracy
+    test_acc = evaluate_accuracy(X_test, y_test, neighbors)
     print("3. Test Set Accuracy:")
-    print(f"\tAccuracy: {fold_accs[-1]:.2f}%")
+    print(f"\tAccuracy: {test_acc:.2f}%")
