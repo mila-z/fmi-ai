@@ -2,7 +2,7 @@
 
 ## How to run
 ### 1. Clone or Download
-Save the code in a file names **`frog_leap_puzzle.py`**.
+Save the code in a file named **`frog_leap_puzzle.py`**.
 
 ### 2. Run in a Terminal or IDE
 ```bash
