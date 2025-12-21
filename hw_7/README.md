@@ -17,7 +17,8 @@ The program supports two modes, selected via user input:
 ### 1. Clone or Download
 Save the code in a file named **naive_bayes.py** or clone/download the repo.
 
-### 2. Download the dataset from https://archive.ics.uci.edu/dataset/105/congressional+voting+records
+### 2. Download the dataset 
+Download from https://archive.ics.uci.edu/dataset/105/congressional+voting+records
 Place the house-votes-84.data file in the same directory as the code.
 
 ### 3. Run in a Terminal or IDE
