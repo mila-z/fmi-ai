@@ -1,5 +1,4 @@
 # Naive Bayes Classifier implementation for the Congressional Voting Records data set
-You can find the data set at https://archive.ics.uci.edu/dataset/105/congressional+voting+records
 
 ## Implemented Approach
 - **Classifier:** Naive Bayes (categorial)
